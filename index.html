@@ -168,13 +168,13 @@
         var map = new TrimbleMaps.Map({
             container: "myMap",
             center: new TrimbleMaps.LngLat(hriLongitude, hriLatitude),
+            style: TrimbleMaps.Common.Style.TRANSPORTATION,
             zoom: 15,
-            style: TrimbleMaps.Common.Style.SATELLITE,
             pitch: 10,
             antialias: true
         });
         /*
-                style: TrimbleMaps.Common.Style.TRANSPORTATION,
+            style: TrimbleMaps.Common.Style.SATELLITE,
         */
         var trimbleMapPopup = null;
         var trimbleMapPopupMore = null;
