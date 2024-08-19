@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+
+    <link href="https://maps-sdk.trimblemaps.com/v3/trimblemaps-3.9.0.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.0/themes/base/jquery-ui.css">
+    <script src=https://maps-sdk.trimblemaps.com/v3/trimblemaps-3.9.0.js></script>
+    <script src=https://npmcdn.com/@turf/turf/turf.min.js type="text/javascript"></script>
+    <script src=https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.js type="text/javascript"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.14.0/jquery-ui.js"></script>
+    <style>
+
+    #pick-on-map {
+            top: 0px;
+            position: absolute;
+            background: #fff;
+            padding: 8px;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+    #pick-on-map span {
+                color: #576571;
+                line-height: 32px;
+                display: inline-block;
+                vertical-align: bottom;
+            }
+
+    #hriStatus {
+            position: absolute;
+            top: 152px;
+            text-align: center;
+            width: 800px;
+        }
+
+    #myMap {
+            position: absolute;
+            left: 32px;
+            top: 32px;
+            bottom: 0;
+            width: 100%;
+    }
+
+    #geocodeCtrl .button {
+            background-image: url('https://developer.trimblemaps.com/maps-sdk/img/marker_blue.png');
+            height: 22px !important;
+            width: 22px !important;
+            border: 1px solid transparent;
+            display: inline-block;
+    }
+
+    #geocodeCtrl .active {
+            background-color: #9fb7c8;
+            border: 1px solid #7f92a0;
+        }
+
+    #geocodeCtrl .inactive {
+            background-repeat: no-repeat;
+            background-position: center;
+            cursor: pointer;
+        }
+
+    #crossingStatus {
+            position: absolute;
+            top: 768px;
+        }
+
+    #distanceToHRI {
+            position: absolute;
+            top: 768px;
+            bottom: 0;
+            width: 100%;
+        }
+
+    #otherPages {
+            position: absolute;
+            top: 828px;
+            bottom: 0;
+            width: 100%;
+        }
+
+    .marker-icon {
+        background-image: url('https://developer.trimblemaps.com/maps-sdk/img/marker_blue.png');
+        background-repeat: no-repeat;
+        width: 21px;
+        height: 25px;
+        cursor: pointer;
+    }
+    </style>
+
+</head>
+<body>
+    
+
+    <div id="myMap"></div>
+    <div id="MouseLatLon"></div>
+
+    <div id="hri-information" class="hri-information" title="HRI Information" style="display: none;">
+        <table>
+            <tr>
+                <td>
+                    <table style="width: 256px">
+                        <tr><td>US DOT No:<span id="hri-info-dotno"</span></td></tr>
+                        <tr><td>Status: <span id="hri-info-status"></span></td></tr>
+                        <tr><td>Comms: <span id="hri-info-comms"></span></td></tr>
+                        <tr><td>City: <span id="hri-info-city"</span></td></tr>
+                        <tr><td>County: <span id="hri-info-county"</span></td></tr>
+                        <tr><td>Street: <span id="hri-info-street"></span></td></tr>
+                        <tr><td>Rail Name: <span id="hri-info-railname"></span></td></tr>
+                    </table>
+                    <table style="width: 256px">
+                        <tr>
+                            <td><button type="button" onclick="showMoreInformation();">More Info</button></td>
+                            <td><button type="button" onclick="hideInformation();">Close</button></td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <div style="vertical-align:top; margin-bottom:32px; margin-top:32px">
+                        <button type="button" onclick=" hriActive = !hriActive;flashHRI();" style="margin:0,0,64px,0; width:96px">Toggle Train</br>Detection</br>On/Off</button>
+                    </div>
+                    <div style="vertical-align:top; margin-bottom:64px">
+                        <button type="button" onclick="" style="margin:64px,0,0,0; width:96px">Toggle Comms</br>On/Off</button>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="hri-more-information" class="hri-more-information" title="HRI Information" style="display: none;">
+        <table>
+            <tr>
+                <td>
+                    <table style="width: 256px">
+                        <tr><td>US DOT No:<span id="more-hri-info-dotno"</span></td></tr>
+                        <tr><td>Status: <span id="more-hri-info-status"></span></td></tr>
+                        <tr><td>Comms: <span id="more-hri-info-comms"></span></td></tr>
+                        <tr><td>City: <span id="more-hri-info-city"</span></td></tr>
+                        <tr><td>County: <span id="more-hri-info-county"</span></td></tr>
+                        <tr><td>Street: <span id="more-hri-info-street"></span></td></tr>
+                        <tr><td>Rail Name: <span id="more-hri-info-railname"></span></td></tr>
+                    </table>
+                    <table style="width: 256px">
+                        <tr>
+                            <td><button type="button" onclick="hideMoreInformation();">Close</button></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <script>
+
+        TrimbleMaps.APIKey = "7E27C13016099E47A48B466C0EC38AF2";
+
+        var origin = [-81.71896370494375, 30.28618658831364];
+        var hri621223F = ['621223f', 'Jacksonville, FL', 'Franklin', 'San Juan Ave', [-81.720559, 30.282196]];
+        var hri621221S = ['621221S', 'Jacksonville, FL', 'Franklin', 'St. Johns Ave', [-81.7206070, 30.2885320]];
+        var hri271824W = ['271824W', 'Jacksonville, FL', 'Franklin', 'Sunbeam Rd', [-81.5787700, 30.2060770]];
+        var hri621275X = ['621275X', 'Jacksonville, FL', 'Franklin', 'S. Edgewood Ave', [-81.7308415, 30.3269015]];
+
+        var hriPoints = [hri621223F, hri621221S, hri271824W, hri621275X];
+
+        var hriLatitude = origin[1];
+        var hriLongitude = origin[0];
+
+        var map = new TrimbleMaps.Map({
+            container: "myMap",
+            center: new TrimbleMaps.LngLat(hriLongitude, hriLatitude),
+            zoom: 15,
+            style: TrimbleMaps.Common.Style.SATELLITE,
+            pitch: 10,
+            antialias: true
+        });
+        /*
+                style: TrimbleMaps.Common.Style.TRANSPORTATION,
+        */
+        var trimbleMapPopup = null;
+        var trimbleMapPopupMore = null;
+        var activeHRI = null;
+        var activeHRILayer = null;
+        var hriActive = false;
+        var markers = [];
+
+        map.on('load', function () {
+            //fdocument.getElementById('iconDiv').classList.toggle('active');
+            //window.chrome.webview.addEventListener("message", function () { alert(`message`); });
+            setupMap();
+        });
+
+        map.on('mousemove', function (e) {
+            /*
+                        document.getElementById("MouseLatLon").innerHTML =
+                                `LAT: ` + e.lngLat.lat + ` LNG: ` + e.lngLat.lng + `</br>` +
+                                    map.transform.center.lat + `,` + map.transform.center.lng + `</br>` +
+                                    map.transform.tileZoom;
+            */
+        });
+
+        function setupMap() {
+
+            var rrCrossingPoints = [];
+            var hriLayers = [];
+
+            let imgUrl = '/rrNominal.png';
+
+            map.loadImage(imgUrl, function (error, image) {
+                //if (!map.hasImage(markerIcon)) {
+                    map.addImage(`rrIcon`, image);
+                //}
+            });
+
+            for (k = 0; k < 4; k++) {
+
+                const el = document.createElement('div');
+                el.className = 'hri-icon';
+                markers.push(new TrimbleMaps.Marker({ element: el, draggable: false }).setLngLat(hriPoints[k][4]).addTo(map));
+
+                var props = [];
+                props.push({ key: `hri-info-dotno`, value: hriPoints[k][0] });
+                props.push({ key: `hri-info-city`, value: hriPoints[k][1] });
+                props.push({ key: `hri-info-county`, value: hriPoints[k][2] });
+                props.push({ key: `hri-info-street`, value: hriPoints[k][3] });
+
+                rrCrossingPoints[k] = {
+                    type: 'FeatureCollection', features: [{
+                        type: 'Feature',
+                        properties: {
+                            'icon': `rrIcon`,//'poi_levelcwithbarrier',
+                            'hriData': props
+                        },
+                        geometry: { type: 'Point', coordinates: [hriPoints[k][4][0], hriPoints[k][4][1]] },
+content: `<img width="30" height="30" src="rrNominal.png"><img>`
+                    }]
+                }
+
+                map.addSource(`railroad_crossings` + k, { type: 'geojson', data: rrCrossingPoints[k] });
+
+                hriLayers[k] = map.addLayer({
+                    'id': `railroad_crossings` + k,
+                    'type': 'symbol',
+                    'source': `railroad_crossings` + k,
+                    'layout': {
+                        'icon-image': ['get', 'icon'],
+                        'icon-allow-overlap': true
+                    }
+                });
+                map.on('mouseenter', `railroad_crossings` + k, function () {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
+                map.on('mouseleave', `railroad_crossings` + k, function () {
+                    map.getCanvas().style.cursor = '';
+                });
+                map.on('click', `railroad_crossings` + k, function (e) {
+                    activeHRI = map.queryRenderedFeatures(e.point)[0];
+                    activeHRILayer = activeHRI.layer.id;
+                    showInformation();
+                });
+            }
+
+        }
+
+        function setHRIPosition(theCoordinate) {
+            hriLatitude = theCoordinate[0];
+            hriLongitude = theCoordinate[1];
+            rrCrossingPoint.features[0].geometry.coordinates = theCoordinate;
+            map.getSource('railroad_crossings').setData(rrCrossingPoint);
+            hriGeometry = turf.circle(rrCrossingPoint.features[0].geometry, hriRadius, { steps: 10, units: 'kilometers', properties: {} });
+        }
+
+        function activateHRI() {
+            var s = document.getElementById("activateHRI-ID").innerHTML;
+            if ('Activate' == s) {
+                hriActive = true;
+                document.getElementById("activateHRI-ID").innerHTML = 'Deactivate';
+                hriAdditionalInformation = 'Active RR Crossing ahead! ';
+                setTimeout(function () { flashHRI(); });
+            } else {
+                hriActive = false;
+                hriAdditionalInformation = '';
+                document.getElementById("activateHRI-ID").innerHTML = 'Activate';
+            }
+        }
+
+        function flashHRI() {
+            map.setLayoutProperty(activeHRILayer, 'visibility', 'none');
+            setTimeout(function () {
+                map.setLayoutProperty(activeHRILayer, 'visibility', 'visible');
+                if (hriActive)
+                    setTimeout(function () { flashHRI(); }, 500);
+            }, 500);
+        }
+
+        function showInformation() {
+
+            var dialogElem = document.getElementById(`hri-information`);
+
+            var hriData = JSON.parse(activeHRI.properties.hriData);
+
+            for (k = 0; k < hriData.length; k++) {
+                var elem = document.getElementById(hriData[k].key);
+                if (elem)
+                    elem.innerHTML = hriData[k].value;
+            }
+
+            trimbleMapPopup = new TrimbleMaps.Popup()
+                .setLngLat(activeHRI.geometry.coordinates.slice())
+                .setHTML(dialogElem.innerHTML)
+                .setMaxWidth(1024)
+                .addTo(map);
+
+            return;
+        }
+
+        function showMoreInformation() {
+
+            var dialogElem = document.getElementById(`hri-more-information`);
+
+            var hriData = JSON.parse(activeHRI.properties.hriData);
+
+            for (k = 0; k < hriData.length; k++) {
+                var elem = document.getElementById(`more-` + hriData[k].key);
+                if (elem)
+                    elem.innerHTML = hriData[k].value;
+            }
+
+            trimbleMapPopupMore = new TrimbleMaps.Popup({ offset: [256, 128] })
+                .setLngLat(activeHRI.geometry.coordinates.slice())
+                .setHTML(dialogElem.innerHTML)
+                .setMaxWidth(1024)
+                .addTo(map);
+
+            return;
+        }
+
+
+        function hideInformation() {
+            trimbleMapPopup.remove();
+        }
+
+        function hideMoreInformation() {
+            trimbleMapPopupMore.remove();
+        }
+
+    </script>
+
+</body>
+</html>
