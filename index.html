@@ -94,7 +94,6 @@
 
 </head>
 <body>
-    
 
     <div id="myMap"></div>
     <div id="MouseLatLon"></div>
@@ -213,11 +212,13 @@
 
             for ( k = 0; k < 4; k++ ) {
 
-                var props = `[["hri-info-dotno","` + hriPoints[k][0] + `"],` +
+                var props = `[` + 
+                    `["hri-info-dotno","` + hriPoints[k][0] + `"],` +
                     `["hri-info-city","` + hriPoints[k][1] + `"],` +
                     `["hri-info-county","` + hriPoints[k][2] + `"],` +
                     `["hri-info-street","` + hriPoints[k][3] + `"],` +
-                    `["hri-seq","` + k + `"]]`;
+                    `["hri-seq","` + k + `"],` +
+                    `["hri-active","` + 0 + `"]]`;
 
                 rrCrossingPoint = {
                     type: 'FeatureCollection', features: [{
@@ -255,6 +256,8 @@
                 });
 
                 map.on('mouseenter', `railroad_crossings` + k, function () {
+                    if ( trimbleMapPopup ) 
+                        return;
                     map.getCanvas().style.cursor = 'pointer';
                 });
 
@@ -263,6 +266,8 @@
                 });
 
                 map.on('click', `railroad_crossings` + k, function (e) {
+                    if ( trimbleMapPopup ) 
+                        return;
                     activeHRI = map.queryRenderedFeatures(e.point)[0];
                     activeHRILayer = activeHRI.layer.id;
                     showInformation();
@@ -279,9 +284,9 @@
 
             var hriData = JSON.parse(activeHRI.properties.hriData);
 
-            var theID = hriData[hriData.length - 1][1];
+            var theID = hriData[hriData.length - 2][1];
 
-            if ( hriActive ) {
+            if ( "1" == hriData[hriData.length - 1][1] ) {
 
                 map.addLayer({
                     'id': `active_crossings` + theID,
@@ -310,6 +315,8 @@
             }
 
             map.on('mouseenter', activeHRILayer, function () {
+                if ( trimbleMapPopup ) 
+                    return;
                 map.getCanvas().style.cursor = 'pointer';
             });
 
@@ -318,6 +325,8 @@
             });
 
             map.on('click', activeHRILayer, function (e) {
+                if ( trimbleMapPopup ) 
+                    return;
                 activeHRI = map.queryRenderedFeatures(e.point)[0];
                 activeHRILayer = activeHRI.layer.id;
                 showInformation();
@@ -343,13 +352,13 @@
 
             var hriData = JSON.parse(activeHRI.properties.hriData);
 
-            for ( k = 0; k < hriData.length - 1; k++ ) {
+            for ( k = 0; k < hriData.length - 2; k++ ) {
                 var elem = document.getElementById(hriData[k][0]);
                 if (elem)
                     elem.innerHTML = hriData[k][1];
             }
 
-            trimbleMapPopup = new TrimbleMaps.Popup()
+            trimbleMapPopup = new TrimbleMaps.Popup({closeOnClick:false})
                 .setLngLat(activeHRI.geometry.coordinates.slice())
                 .setHTML(dialogElem.innerHTML)
                 .setMaxWidth(1024)
@@ -364,7 +373,7 @@
 
             var hriData = JSON.parse(activeHRI.properties.hriData);
 
-            for (k = 0; k < hriData.length - 1; k++) {
+            for (k = 0; k < hriData.length - 2; k++) {
                 var elem = document.getElementById(`more-` + hriData[k][0]);
                 if (elem)
                     elem.innerHTML = hriData[k][1];
@@ -383,11 +392,13 @@
         function hideInformation() {
             if ( trimbleMapPopup) 
                 trimbleMapPopup.remove();
+            trimbleMapPopup = null;
         }
 
         function hideMoreInformation() {
             if ( trimbleMapPopupMore )
                 trimbleMapPopupMore.remove();
+            trimbleMapPopupMore = null;
         }
 
     </script>
