@@ -3,16 +3,19 @@
 <head>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 
-    <link href="https://maps-sdk.trimblemaps.com/v3/trimblemaps-3.9.0.css" rel="stylesheet">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.14.0/themes/base/jquery-ui.css">
+
+    <link href="https://maps-sdk.trimblemaps.com/v3/trimblemaps-3.9.0.css" rel="stylesheet">
     <script src=https://maps-sdk.trimblemaps.com/v3/trimblemaps-3.9.0.js></script>
+<!--    <script src="https://maps-sdk.trimblemaps.com/v1/alkmaps-1.2.3.js"></script>-->
+
     <script src=https://npmcdn.com/@turf/turf/turf.min.js type="text/javascript"></script>
     <script src=https://cdnjs.cloudflare.com/ajax/libs/mapbox-polyline/1.1.1/polyline.js type="text/javascript"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src="https://code.jquery.com/ui/1.14.0/jquery-ui.js"></script>
     <style>
 
-    #pick-on-map {
+        #pick-on-map {
             top: 0px;
             position: absolute;
             background: #fff;
@@ -20,73 +23,73 @@
             font-family: 'Open Sans', sans-serif;
         }
 
-    #pick-on-map span {
+            #pick-on-map span {
                 color: #576571;
                 line-height: 32px;
                 display: inline-block;
                 vertical-align: bottom;
             }
 
-    #hriStatus {
+        #hriStatus {
             position: absolute;
             top: 152px;
             text-align: center;
             width: 800px;
         }
 
-    #myMap {
+        #myMap {
             position: absolute;
             left: 32px;
             top: 32px;
             bottom: 0;
             width: 100%;
-    }
+        }
 
-    #geocodeCtrl .button {
+        #geocodeCtrl .button {
             background-image: url('https://developer.trimblemaps.com/maps-sdk/img/marker_blue.png');
             height: 22px !important;
             width: 22px !important;
             border: 1px solid transparent;
             display: inline-block;
-    }
+        }
 
-    #geocodeCtrl .active {
+        #geocodeCtrl .active {
             background-color: #9fb7c8;
             border: 1px solid #7f92a0;
         }
 
-    #geocodeCtrl .inactive {
+        #geocodeCtrl .inactive {
             background-repeat: no-repeat;
             background-position: center;
             cursor: pointer;
         }
 
-    #crossingStatus {
+        #crossingStatus {
             position: absolute;
             top: 768px;
         }
 
-    #distanceToHRI {
+        #distanceToHRI {
             position: absolute;
             top: 768px;
             bottom: 0;
             width: 100%;
         }
 
-    #otherPages {
+        #otherPages {
             position: absolute;
             top: 828px;
             bottom: 0;
             width: 100%;
         }
 
-    .marker-icon {
-        background-image: url('https://developer.trimblemaps.com/maps-sdk/img/marker_blue.png');
-        background-repeat: no-repeat;
-        width: 21px;
-        height: 25px;
-        cursor: pointer;
-    }
+        .marker-icon {
+            background-image: url('https://developer.trimblemaps.com/maps-sdk/img/marker_blue.png');
+            background-repeat: no-repeat;
+            width: 21px;
+            height: 25px;
+            cursor: pointer;
+        }
     </style>
 
 </head>
@@ -118,7 +121,7 @@
                 </td>
                 <td>
                     <div style="vertical-align:top; margin-bottom:32px; margin-top:32px">
-                        <button type="button" onclick=" hriActive = !hriActive;flashHRI();" style="margin:0,0,64px,0; width:96px">Toggle Train</br>Detection</br>On/Off</button>
+                        <button type="button" onclick=" hriActive = !hriActive;activateDeactivateHRI();" style="margin:0,0,64px,0; width:96px">Toggle Train</br>Detection</br>On/Off</button>
                     </div>
                     <div style="vertical-align:top; margin-bottom:64px">
                         <button type="button" onclick="" style="margin:64px,0,0,0; width:96px">Toggle Comms</br>On/Off</button>
@@ -200,44 +203,48 @@
 
         function setupMap() {
 
-            var rrCrossingPoints = [];
-            var hriLayers = [];
-
-            let imgUrl = '/rrNominal.png';
-
-            map.loadImage(imgUrl, function (error, image) {
-                //if (!map.hasImage(markerIcon)) {
-                    map.addImage(`rrIcon`, image);
-                //}
+            map.loadImage('/rrNominal.png', function(error, image) {
+                map.addImage(`rrIcon`, image);
             });
 
-            for (k = 0; k < 4; k++) {
+            map.loadImage('/rrActive.png', function (error, image) {
+                map.addImage(`rrIconActive`, image);
+            });
 
-                const el = document.createElement('div');
-                el.className = 'hri-icon';
-                markers.push(new TrimbleMaps.Marker({ element: el, draggable: false }).setLngLat(hriPoints[k][4]).addTo(map));
+            for ( k = 0; k < 4; k++ ) {
 
-                var props = [];
-                props.push({ key: `hri-info-dotno`, value: hriPoints[k][0] });
-                props.push({ key: `hri-info-city`, value: hriPoints[k][1] });
-                props.push({ key: `hri-info-county`, value: hriPoints[k][2] });
-                props.push({ key: `hri-info-street`, value: hriPoints[k][3] });
+                var props = `[["hri-info-dotno","` + hriPoints[k][0] + `"],` +
+                    `["hri-info-city","` + hriPoints[k][1] + `"],` +
+                    `["hri-info-county","` + hriPoints[k][2] + `"],` +
+                    `["hri-info-street","` + hriPoints[k][3] + `"],` +
+                    `["hri-seq","` + k + `"]]`;
 
-                rrCrossingPoints[k] = {
+                rrCrossingPoint = {
                     type: 'FeatureCollection', features: [{
                         type: 'Feature',
                         properties: {
-                            'icon': `rrIcon`,//'poi_levelcwithbarrier',
+                            'icon': `rrIcon`,
                             'hriData': props
                         },
                         geometry: { type: 'Point', coordinates: [hriPoints[k][4][0], hriPoints[k][4][1]] },
-content: `<img width="30" height="30" src="rrNominal.png"><img>`
                     }]
                 }
 
-                map.addSource(`railroad_crossings` + k, { type: 'geojson', data: rrCrossingPoints[k] });
+                rrActivePoint = {
+                    type: 'FeatureCollection', features: [{
+                        type: 'Feature',
+                        properties: {
+                            'icon': `rrIconActive`,
+                            'hriData': props
+                        },
+                        geometry: { type: 'Point', coordinates: [hriPoints[k][4][0], hriPoints[k][4][1]] },
+                    }]
+                }
 
-                hriLayers[k] = map.addLayer({
+                map.addSource(`railroad_crossings` + k, { type: 'geojson', data: rrCrossingPoint });
+                map.addSource(`active_crossings` + k, { type: 'geojson', data: rrActivePoint });
+
+                map.addLayer({
                     'id': `railroad_crossings` + k,
                     'type': 'symbol',
                     'source': `railroad_crossings` + k,
@@ -246,41 +253,77 @@ content: `<img width="30" height="30" src="rrNominal.png"><img>`
                         'icon-allow-overlap': true
                     }
                 });
+
                 map.on('mouseenter', `railroad_crossings` + k, function () {
                     map.getCanvas().style.cursor = 'pointer';
                 });
+
                 map.on('mouseleave', `railroad_crossings` + k, function () {
                     map.getCanvas().style.cursor = '';
                 });
+
                 map.on('click', `railroad_crossings` + k, function (e) {
                     activeHRI = map.queryRenderedFeatures(e.point)[0];
                     activeHRILayer = activeHRI.layer.id;
                     showInformation();
                 });
+
             }
 
         }
 
-        function setHRIPosition(theCoordinate) {
-            hriLatitude = theCoordinate[0];
-            hriLongitude = theCoordinate[1];
-            rrCrossingPoint.features[0].geometry.coordinates = theCoordinate;
-            map.getSource('railroad_crossings').setData(rrCrossingPoint);
-            hriGeometry = turf.circle(rrCrossingPoint.features[0].geometry, hriRadius, { steps: 10, units: 'kilometers', properties: {} });
-        }
 
-        function activateHRI() {
-            var s = document.getElementById("activateHRI-ID").innerHTML;
-            if ('Activate' == s) {
-                hriActive = true;
-                document.getElementById("activateHRI-ID").innerHTML = 'Deactivate';
-                hriAdditionalInformation = 'Active RR Crossing ahead! ';
-                setTimeout(function () { flashHRI(); });
+        function activateDeactivateHRI() {
+
+            map.removeLayer(activeHRILayer);
+
+            var hriData = JSON.parse(activeHRI.properties.hriData);
+
+            var theID = hriData[hriData.length - 1][1];
+
+            if ( hriActive ) {
+
+                map.addLayer({
+                    'id': `active_crossings` + theID,
+                    'type': 'symbol',
+                    'source': `active_crossings` + theID,
+                    'layout': {
+                        'icon-image': ['get', 'icon'],
+                        'icon-allow-overlap': true
+                    }
+                });
+                activeHRILayer = `active_crossings` + theID;
+
             } else {
-                hriActive = false;
-                hriAdditionalInformation = '';
-                document.getElementById("activateHRI-ID").innerHTML = 'Activate';
+
+                activeHRI.layer = map.addLayer({
+                    'id': `railroad_crossings` + theID,
+                    'type': 'symbol',
+                    'source': `railroad_crossings` + theID,
+                    'layout': {
+                        'icon-image': ['get', 'icon'],
+                        'icon-allow-overlap': true
+                    }
+                });
+                activeHRILayer = `railroad_crossings` + theID;
+
             }
+
+            map.on('mouseenter', activeHRILayer, function () {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+
+            map.on('mouseleave', activeHRILayer, function () {
+                map.getCanvas().style.cursor = '';
+            });
+
+            map.on('click', activeHRILayer, function (e) {
+                activeHRI = map.queryRenderedFeatures(e.point)[0];
+                activeHRILayer = activeHRI.layer.id;
+                showInformation();
+            });
+
+
         }
 
         function flashHRI() {
@@ -294,14 +337,16 @@ content: `<img width="30" height="30" src="rrNominal.png"><img>`
 
         function showInformation() {
 
+            hideInformation();
+
             var dialogElem = document.getElementById(`hri-information`);
 
             var hriData = JSON.parse(activeHRI.properties.hriData);
 
-            for (k = 0; k < hriData.length; k++) {
-                var elem = document.getElementById(hriData[k].key);
+            for ( k = 0; k < hriData.length - 1; k++ ) {
+                var elem = document.getElementById(hriData[k][0]);
                 if (elem)
-                    elem.innerHTML = hriData[k].value;
+                    elem.innerHTML = hriData[k][1];
             }
 
             trimbleMapPopup = new TrimbleMaps.Popup()
@@ -319,10 +364,10 @@ content: `<img width="30" height="30" src="rrNominal.png"><img>`
 
             var hriData = JSON.parse(activeHRI.properties.hriData);
 
-            for (k = 0; k < hriData.length; k++) {
-                var elem = document.getElementById(`more-` + hriData[k].key);
+            for (k = 0; k < hriData.length - 1; k++) {
+                var elem = document.getElementById(`more-` + hriData[k][0]);
                 if (elem)
-                    elem.innerHTML = hriData[k].value;
+                    elem.innerHTML = hriData[k][1];
             }
 
             trimbleMapPopupMore = new TrimbleMaps.Popup({ offset: [256, 128] })
@@ -336,11 +381,13 @@ content: `<img width="30" height="30" src="rrNominal.png"><img>`
 
 
         function hideInformation() {
-            trimbleMapPopup.remove();
+            if ( trimbleMapPopup) 
+                trimbleMapPopup.remove();
         }
 
         function hideMoreInformation() {
-            trimbleMapPopupMore.remove();
+            if ( trimbleMapPopupMore )
+                trimbleMapPopupMore.remove();
         }
 
     </script>
