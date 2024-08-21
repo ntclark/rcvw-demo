@@ -98,18 +98,21 @@
     <div id="myMap"></div>
     <div id="MouseLatLon"></div>
 
+    <button onclick="showPHPInfo();">php info</button>
+
     <div id="hri-information" class="hri-information" title="HRI Information" style="display: none;">
         <table>
             <tr>
                 <td>
                     <table style="width: 256px">
-                        <tr><td>US DOT No:<span id="hri-info-dotno"</span></td></tr>
-                        <tr><td>Status: <span id="hri-info-status"></span></td></tr>
-                        <tr><td>Comms: <span id="hri-info-comms"></span></td></tr>
-                        <tr><td>City: <span id="hri-info-city"</span></td></tr>
-                        <tr><td>County: <span id="hri-info-county"</span></td></tr>
-                        <tr><td>Street: <span id="hri-info-street"></span></td></tr>
-                        <tr><td>Rail Name: <span id="hri-info-railname"></span></td></tr>
+                        <tr><td>US DOT No:<span id="CrossingID"</span></td></tr>
+                        <tr><td>Status: <span id="Status"></span></td></tr>
+                        <tr><td>Comms: <span id="Comms"></span></td></tr>
+                        <tr><td>City: <span id="CityName"</span></td></tr>
+                        <tr><td>Street: <span id="Street"></span></td></tr>
+                        <tr><td>County: <span id="CountyName"</span></td></tr>
+                        <tr><td>State: <span id="StateName"</span></td></tr>
+                        <tr><td>Rail Name: <span id="Railroad"></span></td></tr>
                     </table>
                     <table style="width: 256px">
                         <tr>
@@ -120,10 +123,10 @@
                 </td>
                 <td>
                     <div style="vertical-align:top; margin-bottom:32px; margin-top:32px">
-                        <button type="button" onclick=" hriActive = !hriActive;activateDeactivateHRI();" style="margin:0,0,64px,0; width:96px">Toggle Train</br>Detection</br>On/Off</button>
+                        <button type="button" onclick="activateDeactivateHRI();" style="margin:0,0,64px,0; width:96px">Toggle Train</br>Detection</br>On/Off</button>
                     </div>
                     <div style="vertical-align:top; margin-bottom:64px">
-                        <button type="button" onclick="" style="margin:64px,0,0,0; width:96px">Toggle Comms</br>On/Off</button>
+                        <button type="button" onclick="enableDisableOperational();" style="margin:64px,0,0,0; width:96px">Toggle Comms</br>On/Off</button>
                     </div>
                 </td>
             </tr>
@@ -135,13 +138,14 @@
             <tr>
                 <td>
                     <table style="width: 256px">
-                        <tr><td>US DOT No:<span id="more-hri-info-dotno"</span></td></tr>
-                        <tr><td>Status: <span id="more-hri-info-status"></span></td></tr>
-                        <tr><td>Comms: <span id="more-hri-info-comms"></span></td></tr>
-                        <tr><td>City: <span id="more-hri-info-city"</span></td></tr>
-                        <tr><td>County: <span id="more-hri-info-county"</span></td></tr>
-                        <tr><td>Street: <span id="more-hri-info-street"></span></td></tr>
-                        <tr><td>Rail Name: <span id="more-hri-info-railname"></span></td></tr>
+                        <tr><td>US DOT No:<span id="more-CrossingID"</span></td></tr>
+                        <tr><td>Status: <span id="more-Status"></span></td></tr>
+                        <tr><td>Comms: <span id="more-Comms"></span></td></tr>
+                        <tr><td>City: <span id="more-CityName"</span></td></tr>
+                        <tr><td>Street: <span id="more-Street"></span></td></tr>
+                        <tr><td>County: <span id="more-CountyName"</span></td></tr>
+                        <tr><td>County: <span id="more-StateName"</span></td></tr>
+                        <tr><td>Rail Name: <span id="more-Railroad"></span></td></tr>
                     </table>
                     <table style="width: 256px">
                         <tr>
@@ -170,20 +174,19 @@
         var map = new TrimbleMaps.Map({
             container: "myMap",
             center: new TrimbleMaps.LngLat(hriLongitude, hriLatitude),
+            /*
+                style: TrimbleMaps.Common.Style.SATELLITE,
+            */
             style: TrimbleMaps.Common.Style.TRANSPORTATION,
             zoom: 15,
             pitch: 10,
             antialias: true
         });
-        /*
-            style: TrimbleMaps.Common.Style.SATELLITE,
-        */
+
         var trimbleMapPopup = null;
         var trimbleMapPopupMore = null;
         var activeHRI = null;
         var activeHRILayer = null;
-        var hriActive = false;
-        var markers = [];
 
         map.on('load', function () {
             //fdocument.getElementById('iconDiv').classList.toggle('active');
@@ -202,7 +205,7 @@
 
         function setupMap() {
 
-            map.loadImage('/rrNominal.png', function(error, image) {
+            map.loadImage('/rrNominal.png', function (error, image) {
                 map.addImage(`rrIcon`, image);
             });
 
@@ -212,13 +215,10 @@
 
             for ( k = 0; k < 4; k++ ) {
 
-                var props = `[` + 
+                var props = `[` +
                     `["hri-info-dotno","` + hriPoints[k][0] + `"],` +
-                    `["hri-info-city","` + hriPoints[k][1] + `"],` +
-                    `["hri-info-county","` + hriPoints[k][2] + `"],` +
-                    `["hri-info-street","` + hriPoints[k][3] + `"],` +
-                    `["hri-seq","` + k + `"],` +
-                    `["hri-active","` + 0 + `"]]`;
+                    `["hri-operational","1"],` +
+                    `["hri-active","0"]]`;
 
                 rrCrossingPoint = {
                     type: 'FeatureCollection', features: [{
@@ -242,31 +242,31 @@
                     }]
                 }
 
-                map.addSource(`railroad_crossings` + k, { type: 'geojson', data: rrCrossingPoint });
-                map.addSource(`active_crossings` + k, { type: 'geojson', data: rrActivePoint });
+                map.addSource(`railroad_crossings` + hriPoints[k][0], { type: 'geojson', data: rrCrossingPoint });
+                map.addSource(`active_crossings` + hriPoints[k][0], { type: 'geojson', data: rrActivePoint });
 
                 map.addLayer({
-                    'id': `railroad_crossings` + k,
+                    'id': `railroad_crossings` + hriPoints[k][0],
                     'type': 'symbol',
-                    'source': `railroad_crossings` + k,
+                    'source': `railroad_crossings` + hriPoints[k][0],
                     'layout': {
                         'icon-image': ['get', 'icon'],
                         'icon-allow-overlap': true
                     }
                 });
 
-                map.on('mouseenter', `railroad_crossings` + k, function () {
-                    if ( trimbleMapPopup ) 
+                map.on('mouseenter', `railroad_crossings` + hriPoints[k][0], function () {
+                    if (trimbleMapPopup)
                         return;
                     map.getCanvas().style.cursor = 'pointer';
                 });
 
-                map.on('mouseleave', `railroad_crossings` + k, function () {
+                map.on('mouseleave', `railroad_crossings` + hriPoints[k][0], function () {
                     map.getCanvas().style.cursor = '';
                 });
 
-                map.on('click', `railroad_crossings` + k, function (e) {
-                    if ( trimbleMapPopup ) 
+                map.on('click', `railroad_crossings` + hriPoints[k][0], function (e) {
+                    if (trimbleMapPopup)
                         return;
                     activeHRI = map.queryRenderedFeatures(e.point)[0];
                     activeHRILayer = activeHRI.layer.id;
@@ -277,6 +277,13 @@
 
         }
 
+        function activeIndex(hriData) {
+            return hriData.length - 1;
+        }
+
+        function operationalIndex(hriData) {
+            return hriData.length - 2;
+        }
 
         function activateDeactivateHRI() {
 
@@ -284,38 +291,42 @@
 
             var hriData = JSON.parse(activeHRI.properties.hriData);
 
-            var theID = hriData[hriData.length - 2][1];
-
-            if ( "1" == hriData[hriData.length - 1][1] ) {
+            if ( "0" == hriData[activeIndex(hriData)][1] ) {
 
                 map.addLayer({
-                    'id': `active_crossings` + theID,
+                    'id': `active_crossings` + hriData[0][1],
                     'type': 'symbol',
-                    'source': `active_crossings` + theID,
+                    'source': `active_crossings` + hriData[0][1],
                     'layout': {
                         'icon-image': ['get', 'icon'],
                         'icon-allow-overlap': true
                     }
                 });
-                activeHRILayer = `active_crossings` + theID;
+                activeHRILayer = `active_crossings` + hriData[0][1];
+
+                hriData[activeIndex(hriData)][1] = "1";
 
             } else {
 
                 activeHRI.layer = map.addLayer({
-                    'id': `railroad_crossings` + theID,
+                    'id': `railroad_crossings` + hriData[0][1],
                     'type': 'symbol',
-                    'source': `railroad_crossings` + theID,
+                    'source': `railroad_crossings` + hriData[0][1],
                     'layout': {
                         'icon-image': ['get', 'icon'],
                         'icon-allow-overlap': true
                     }
                 });
-                activeHRILayer = `railroad_crossings` + theID;
+                activeHRILayer = `railroad_crossings` + hriData[0][1];
+
+                hriData[activeIndex(hriData)][1] = "0";
 
             }
 
+            activeHRI.properties.hriData = JSON.stringify(hriData);
+
             map.on('mouseenter', activeHRILayer, function () {
-                if ( trimbleMapPopup ) 
+                if (trimbleMapPopup)
                     return;
                 map.getCanvas().style.cursor = 'pointer';
             });
@@ -325,82 +336,143 @@
             });
 
             map.on('click', activeHRILayer, function (e) {
-                if ( trimbleMapPopup ) 
+                if (trimbleMapPopup)
                     return;
                 activeHRI = map.queryRenderedFeatures(e.point)[0];
                 activeHRILayer = activeHRI.layer.id;
                 showInformation();
             });
 
+            flashHRI();
+            monitorHRI();
+
+            const xhttp = new XMLHttpRequest();
+            xhttp.onload = function () {
+            }
+            xhttp.open("GET", "setHRIValue.php?crossingID=" + hriData[0][1] + "&field=PreemptionStatus&status=" + hriData[activeIndex(hriData)][1]);
+            xhttp.send();
 
         }
 
+
+        function enableDisableOperational() {
+
+            var hriData = JSON.parse(activeHRI.properties.hriData);
+
+            const xhttp = new XMLHttpRequest();
+            xhttp.onload = function () {
+            }
+            xhttp.open("GET", "setHRIValue.php?crossingID=" + hriData[0][1] + "&field=RBSOperational&status=" + hriData[operationalIndex(hriData)][1]);
+            xhttp.send();
+        }
+
+
         function flashHRI() {
+            var hriData = JSON.parse(activeHRI.properties.hriData);
             map.setLayoutProperty(activeHRILayer, 'visibility', 'none');
             setTimeout(function () {
                 map.setLayoutProperty(activeHRILayer, 'visibility', 'visible');
-                if (hriActive)
+                if ("1" == hriData[activeIndex(hriData)][1] )
                     setTimeout(function () { flashHRI(); }, 500);
             }, 500);
         }
 
-        function showInformation() {
 
-            hideInformation();
+        function monitorHRI() {
 
-            var dialogElem = document.getElementById(`hri-information`);
-
+if ( ! activeHRI )
+return;
             var hriData = JSON.parse(activeHRI.properties.hriData);
 
-            for ( k = 0; k < hriData.length - 2; k++ ) {
-                var elem = document.getElementById(hriData[k][0]);
-                if (elem)
-                    elem.innerHTML = hriData[k][1];
+            getInformation(hriData[0][1], function (info) {
+                var crossingData = JSON.parse(info);
+                for ( k = 0; k < crossingData.length; k++ ) {
+                    var elem = document.getElementById(crossingData[k][0]);
+                    if (elem)
+                        elem.innerHTML = crossingData[k][1];
+                    elem = document.getElementById('more-' + crossingData[k][0]);
+                    if (elem)
+                        elem.innerHTML = crossingData[k][1];
+                }
+            });
+
+            setTimeout(function () {
+                //if ("1" == hriData[hriData.length - 1][1])
+                    setTimeout(function () { monitorHRI(); }, 1000);
+            }, 1000);
+
+        }
+
+
+        function getInformation(hriID,callback) {
+            const xhttp = new XMLHttpRequest();
+            xhttp.onload = function () {
+                callback(this.responseText);
             }
+            xhttp.open("GET", "getCrossingInfo.php?crossingID=" + hriID);
+            xhttp.send();
+        }
 
-            trimbleMapPopup = new TrimbleMaps.Popup({closeOnClick:false})
-                .setLngLat(activeHRI.geometry.coordinates.slice())
-                .setHTML(dialogElem.innerHTML)
-                .setMaxWidth(1024)
-                .addTo(map);
 
+        function showInformation() {
+            hideInformation();
+            getInformation(JSON.parse(activeHRI.properties.hriData)[0][1],function(info) {
+                var crossingData = JSON.parse(info);
+                for ( k = 0; k < crossingData.length; k++ ) {
+                    var elem = document.getElementById(crossingData[k][0]);
+                    if (elem)
+                        elem.innerHTML = crossingData[k][1];
+                }
+                var dialogElem = document.getElementById(`hri-information`);
+                trimbleMapPopup = new TrimbleMaps.Popup({ closeOnClick: false })
+                    .setLngLat(activeHRI.geometry.coordinates.slice())
+                    .setHTML(dialogElem.innerHTML)
+                    .setMaxWidth(1024)
+                    .addTo(map);
+                monitorHRI();
+            });
             return;
         }
 
+
         function showMoreInformation() {
-
-            var dialogElem = document.getElementById(`hri-more-information`);
-
-            var hriData = JSON.parse(activeHRI.properties.hriData);
-
-            for (k = 0; k < hriData.length - 2; k++) {
-                var elem = document.getElementById(`more-` + hriData[k][0]);
-                if (elem)
-                    elem.innerHTML = hriData[k][1];
-            }
-
-            trimbleMapPopupMore = new TrimbleMaps.Popup({ offset: [256, 128] })
-                .setLngLat(activeHRI.geometry.coordinates.slice())
-                .setHTML(dialogElem.innerHTML)
-                .setMaxWidth(1024)
-                .addTo(map);
-
+            hideMoreInformation();
+            getInformation(JSON.parse(activeHRI.properties.hriData)[0][1], function (info) {
+                var crossingData = JSON.parse(info);
+                for ( k = 0; k < crossingData.length; k++ ) {
+                    var elem = document.getElementById('more-' + crossingData[k][0]);
+                    if ( elem )
+                        elem.innerHTML = crossingData[k][1];
+                }
+                var dialogElem = document.getElementById(`hri-more-information`);
+                trimbleMapPopupMore = new TrimbleMaps.Popup({ closeOnClick: false, offset: [256, 128] })
+                    .setLngLat(activeHRI.geometry.coordinates.slice())
+                    .setHTML(dialogElem.innerHTML)
+                    .setMaxWidth(1024)
+                    .addTo(map);
+            });;
             return;
         }
 
 
         function hideInformation() {
-            if ( trimbleMapPopup) 
+            if (trimbleMapPopup)
                 trimbleMapPopup.remove();
             trimbleMapPopup = null;
+            hideMoreInformation();
         }
 
+
         function hideMoreInformation() {
-            if ( trimbleMapPopupMore )
+            if (trimbleMapPopupMore)
                 trimbleMapPopupMore.remove();
             trimbleMapPopupMore = null;
         }
 
+
+        function showPHPInfo() {
+            window.location.href = "/db2.php";
+        }
     </script>
 
 </body>
