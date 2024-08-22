@@ -1,9 +1,5 @@
-<?php>
+<?php
 
-?>
-
-<H1>Hello World</H1>
-
-<?php>
+header("Location: /index.html");
 
 ?>
